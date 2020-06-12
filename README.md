@@ -94,6 +94,8 @@
     - [其他操作系统常见面试题](#5-2)
         - [大小端](#5-2-1)
         - [一个程序从开始运行到结束的完整过程 (四个过程)](#5-2-2)
+- [附录](#appendix)
+    - [排序算法](#sort-algorithm)	
 <div STYLE="page-break-after: always;"></div>
 
 <a id="1"></a>
@@ -317,7 +319,7 @@ Linux 下使用虚拟内存空间给每一个进程，32 位操作系统下，�
 
 <a id="1-3-3"></a>
 
-### 1.3.3 正确处理僵尸进程的方法⭐⭐⭐⭐
+### 1.3.3 正确处理僵尸进程的方法 `⭐⭐⭐⭐`
 #### 通过信号机制
 子进程退出时向父进程发送 `SIGCHILD` 信号，父进程处理 `SIGCHILD` 信号。在信号处理函数中调用 `wait` 进行处理僵尸进程。
 ```c
@@ -1081,17 +1083,20 @@ server 此时已经知道接收不到 client 的数据了，但是还可以给�
 <a id="4-1-1"></a>
 
 ### 4.1.1各种排序算法的时间空间复杂度、稳定性 `⭐⭐⭐⭐⭐`
+
+> [附录-排序算法](#sort-algorithm)
+
 排序算法 | 平均时间复杂度 | 最差时间复杂度 | 空间复杂度 | 数据对象稳定性
 ---|---|---|---|---
 [冒泡排序](algorithm/BubbleSort.h) | O(n<sup>2</sup>)|O(n<sup>2</sup>)|O(1)|稳定
 [选择排序](algorithm/SelectionSort.h) | O(n<sup>2</sup>)|O(n<sup>2</sup>)|O(1)|数组不稳定、链表稳定
 [插入排序](algorithm/InsertSort.h) | O(n<sup>2</sup>)|O(n<sup>2</sup>)|O(1)|稳定
 [快速排序](algorithm/QuickSort.h) | O(n*log<sub>2</sub>n) |  O(n<sup>2</sup>) | O(log<sub>2</sub>n) | 不稳定
-[堆排序](algorithm/HeapSort.cpp) | O(n*log<sub>2</sub>n)|O(n*log<sub>2</sub>n)|O(1)|不稳定
+[堆排序](algorithm/HeapSort.h) | O(n*log<sub>2</sub>n)|O(n*log<sub>2</sub>n)|O(1)|不稳定
 [归并排序](algorithm/MergeSort.h) | O(n*log<sub>2</sub>n) | O(n*log<sub>2</sub>n)|O(n)|稳定
 [希尔排序](algorithm/ShellSort.h) | O(n*log<sup>2</sup>n)|O(n<sup>2</sup>)|O(1)|不稳定
-[计数排序](algorithm/CountSort.cpp) | O(n+m)|O(n+m)|O(n+m)|稳定
-[桶排序](algorithm/BucketSort.cpp) | O(n)|O(n)|O(m)|稳定
+[计数排序](algorithm/CountSort.h) | O(n+m)|O(n+m)|O(n+m)|稳定
+[桶排序](algorithm/BucketSort.h) | O(n)|O(n)|O(m)|稳定
 [基数排序](algorithm/RadixSort.h) | O(k*n)|O(n<sup>2</sup>)| |稳定
 
 > * 均按从小到大排列
@@ -1183,3 +1188,455 @@ server 此时已经知道接收不到 client 的数据了，但是还可以给�
 ### 5.2.11 Linux 操作系统挂起、休眠、关机相关命令⭐⭐ 
 ### 5.2.12 数据库为什么要建立索引，以及索引的缺点⭐⭐
 
+
+
+<div STYLE="page-break-after: always;"></div>
+
+<a id="appendix"></a>
+
+# 附录
+
+<a id="sort-algorithm"></a>
+
+## 排序算法
+
+- [冒泡排序](#bubble-sort)
+- [选择排序](#selection-sort)
+- [插入排序](#insert-sort)
+- [快速排序](#quick-sort)
+- [堆排序](#heap-sort)
+- [归并排序](#merge-sort)
+- [希尔排序](#shell-sort)
+- [计数排序](#count-sort)
+- [桶排序](#bucket-sort)
+- [基数排序](#radix-sort)
+
+<a id="bubble-sort"></a>
+
+### BubbleSort
+
+```cpp
+/*
+(无序区, 有序区). 从无序区通过交换找出最大元素放到有序区前端.
+*/
+
+// 冒泡排序
+void BubbleSort(vector<int>& nums) {
+    int len = nums.size();
+    for (int i = 0; i < len - 1; ++i)
+        for (int j = 0; j < len - 1 - i; ++j)
+            if (nums[j] > nums[j + 1])
+                swap(nums[j], nums[j + 1]);
+}
+
+// 冒泡排序改进版
+// 如果进行某一趟排序时没有数据交换，则说明数据已经按要求排序好
+// 可立即结束排序，避免不必要的比较过程
+void BubbleSortOrderly(vector<int>& nums) {
+    int len = nums.size();
+    bool orderly = false;
+    for (int i = 0; i < len - 1 && !orderly; ++i) {
+        orderly = true;
+        for (int j = 0; j < len - 1 - i; ++j) {
+            if (nums[j] > nums[j + 1]) {
+                orderly = false;
+                swap(nums[j], nums[j + 1]);
+            }
+        }
+    }
+}
+// 模板
+// 看情况重载 运算符 >  
+template<typaname T>
+void bubble_sort(T nums[], int len) {
+    int len = nums.size();
+    for (int i = 0; i < len - 1; ++i)
+        for (int j = 0; j < len - 1 - i; ++j)
+            if (nums[j] > nums[j + 1])
+                swap(nums[j], nums[j + 1]);
+}
+```
+
+<a id="selection-sort"></a>
+
+### SelectionSort
+```cpp
+/*
+(有序区, 无序区) 在无序区里找一个最小的元素跟在有序区的后面。对数组：比较得多，换得少
+*/
+void SelectionSort(vector<int> &nums) {
+    int minIdx, len = nums.size();
+    for (int i = 0; i < len - 1; ++i) {
+        minIdx = i;
+        // 找到最小的
+        for (int j = i + 1; j < len; ++j) {
+            if (nums[j] < nums[minIdx]) {
+                minIdx = j;
+            }
+        }
+        if (i != minIdx)
+            swap(nums[i], nums[minIdx]);
+    }
+}
+```
+
+<a id="insert-sort"></a>
+
+### InsertSort
+```cpp
+/*
+(有序区, 无序区) 把无序区的第一个元素插入到有序区的合适的位置。对数组：比较得少，换得多
+*/
+void InsertSort(vector<int> &nums) {
+    int len = nums.size();
+    for (int i = 1; i < len; ++i) {
+        auto temp = nums[i];
+        for (int j = i - 1; j >= 0; --j) {
+            if (nums[j] > temp) {
+                nums[j + 1] = nums[j];
+                nums[j] = temp;
+            }
+            else
+                break;
+        }
+    }
+}
+```
+
+<a id="quick-sort"></a>
+
+### QuickSort
+```cpp
+/*
+(小数, 基准元素, 大数)
+在区间中随机挑选一个元素作基准，将小于基准的元素放在基准之前，大于基准的元素放在基准之后，再分别对小数区与大数区进行排序
+*/
+void QuickSort(vector<int> &nums, int low, int high) {
+    if (low >= high)
+        return;
+    int first = low;
+    int last = high;
+    int key = nums[first];
+    while (first < last) {
+        // 先从右边开始，找到小于的
+        while (first < last && nums[last] >= key)
+            last--;
+        while (first < last && nums[first] <= key)
+            first++;
+        if (first < last)
+            swap(nums[first], nums[last]);
+    }
+    // 基准置位
+    if (nums[first] < nums[low])
+        swap(nums[low], nums[first]);
+    else
+        first++;
+    QuickSort(nums, low, first - 1);
+    QuickSort(nums, first + 1, high);
+}
+```
+
+<a id="heap-sort"></a>
+
+### HeapSort
+```cpp
+/*
+(大顶堆, 有序区) 交换堆顶元素和大顶堆末尾元素，恢复大顶堆
+*/
+void max_heapify(int nums[], int start, int end) {
+    int fIdx = start;
+    int cIdx = fIdx * 2 + 1;
+    while (cIdx <= end) {
+        // 选择较大的子节点
+        if (cIdx + 1 <= end && nums[cIdx] < nums[cIdx + 1])
+            cIdx++;
+        
+        if (nums[fIdx] > nums[cIdx])
+            return;
+        // 交换父子节点，向下调整
+        else {
+            swap(nums[fIdx], nums[cIdx]);
+            fIdx = cIdx;
+            cIdx = fIdx * 2 + 1;
+        }
+    }
+}
+
+void heap_sort(int nums[], int len) {
+    // 构造大顶堆
+    for (int i = len - 1; i >= 0; --i) 
+        max_heapify(nums, i, len - 1);
+    // 将堆顶元素与最后元素 (有序元素的前一位) 交换
+    // 调整大顶堆 (有序元素前)
+    for (int i = len - 1; i > 0; --i) {
+        swap(nums[0], nums[i]);
+        max_heapify(nums, 0, i - 1);
+    }
+}
+```
+
+<a id="merge-sort"></a>
+
+### MergeSort
+```cpp
+/**/
+
+// 递归版本
+template<typename T> 
+void merge_sort_recursive(T arr[], T reg[], int start, int end) {
+    if (start >= end)   return;
+    int len = end - start, mid = (len >> 2) + start;
+    int start1 = start, end1 = mid;
+    int start2 = mid + 1, end2 = end;
+    merge_sort_recursive(arr, reg, start1, end1);
+    merge_sort_recursive(arr, reg, start2, end2);
+    int k = start;
+    while (start1 <= end1 && start2 <= end2)
+        reg[k++] = arr[start1] < arr[start2] ? arr[start1++] : arr[start2++];
+
+    while (start1 <= end1)
+        reg[k++] = arr[start1++];
+    while (start2 <= end2)
+        reg[k++] = arr[start2++];
+    for (k = start; k <= end; ++k) 
+        arr[k] = reg[k];
+}
+
+template<typename T> 
+void merge_sort(T arr[], const int& len) {
+    // 辅助数组
+    T * reg = new T[len];
+    merge_sort_recursive(arr, reg, 0, len - 1);
+    delete[] reg;
+}
+
+// 非递归版本
+template<typename T>
+void merge_sort(T arr[], const int& len) {
+    T* a = arr;
+    T* b = new T[len];
+    for (int seg = 1; seg < len; seg += seg) {
+        for (int start = 0; start < len; start += seg + seg) {
+            int low = start;
+            int mid = min(start + seg, len);
+            int high = min(start + seg + seg, len);
+            int k = low;
+            int start1 = low, end1 = mid;
+            int start2 = mid, end2 = high;
+            while (start1 < end1 && start2 < end2)
+                b[k++] = a[start1] < a[start2] ? a[start1++] : a[start2++];
+            while (start1 < end1)
+                b[k++] = a[start1++];
+            while (start2 < end2)
+                b[k++] = a[start2++];
+        }
+        swap(a, b);
+    }
+    // 在归并的过程中， a、b 值 (数组首地址值) 一直在发生交换
+    // 如果排序过程结束后，a 指向的是原来 b 数组首地址
+    // 1、排序结果始终在 a 数组
+    // 2、此时 arr 还没更新 (b 与 arr 指向相同地址)
+    // 故需要把 a 数组内容复制到 arr 数组；让 b 指向它初始的地址，以便释放
+    if (a != arr) {
+        for (int i = 0; i < len; i++)
+            b[i] = a[i];
+        b = a;
+    }
+    
+    delete[] b;
+}
+```
+
+<a id="shell-sort"></a>
+
+### ShellSort
+```cpp
+/*
+每一轮按照事先决定的间隔进行插入排序，间隔会依次缩小，最后一次一定要是 1
+*/
+template<typename T>
+void shell_sort(T arr[], int length) {
+    int gap = 1;
+    // 选择一个 gap 值
+    while (gap < length / 3)
+        gap = 3 * gap + 1;
+    while (gap >= 1) {
+        for (int i = gap; i < length: ++i) {
+            for (int j = i; j >= gap && arr[j] < arr[j - gap]; j -= gap) {
+                swap(arr[j], arr[j - gap]);
+            }
+        }
+        gap = gap / 3;
+    }
+}
+```
+
+<a id="count-sort"></a>
+
+### CountSort
+```cpp
+/*
+计数排序不是基于元素比较，而是利用数组下标来确定元素的正确位置
+计数排序可以看作是一种桶排序
+
+计数排序基于一个假设，待排序数列的所有数均为整数，且出现在(0, k) 的区间之内
+如果 k (待排数组的最大值) 过大则会引起较大的空间复杂度，一般是用来排序 0 到 100 之间的数字的最好的算法
+时间复杂度为 O(n+k) ，空间复杂度为 O(n+k)
+*/
+void CountSort(vector<int>& vecRaw, vector<int>& vecObj) {
+    if (vecRaw.size() == 0) return;
+    int len = *max_element(vecRaw.begin(), vecRaw.end()) + 1;
+    vector<int> vecCount(len, 0);
+
+    // 统计 value 的次数
+    for (int i = 0; i < vecRaw.size(); ++i)
+        vecCount[vecRaw[i]]++;
+    // 次数类和，方便逆序更新
+    for (int i = 1; i < len; ++i)
+        vecCount[i] += vecCount[i - 1];
+    // 逆序保证排序的稳定性
+    for (int i = vecRaw.size() - 1; i >= 0; --i) 
+        vecObj[--vecCount[vecRaw[i]]] = vecRaw[i];
+}
+```
+
+<a id="bucket-sort"></a>
+
+### BucketSort
+```cpp
+/*
+桶排序：将值为 i 的元素放入 f(i) 号桶，最后依次把桶里的元素倒出来。
+桶排序思路：
+1. 设置一个定量的数组当作空桶
+2. 寻访序列，并且把元素放到对应的桶
+3. 对每个不是空的桶进行排序
+4. 从不是空的桶里把元素再放回原来的序列中。
+
+*/
+
+// 假设数据分布在 [0，100)之间，每个桶内部用链表表示，在数据入桶的同时插入排序，然后把各个桶中的数据合并
+// 计数排序可以看作是一种桶排序
+
+const int BUCKET_NUM = 10;
+
+struct ListNode {
+    explicit ListNode(int i = 0) : val(i), next(NULL) {}
+    int val;
+    ListNode* next;
+}
+
+ListNode* insert(ListNode* head, int value) {
+    ListNode* dummyNode;
+    ListNode* newNode = new ListNode(value);
+    ListNode *pre, *cur;
+    dummyNode->next = head;
+    pre = dummyNode;
+    cur =  head;
+    while (cur && cur->val <= value) {
+        pre = cur;
+        cur = cur->next;
+    }
+    newNode->next = cur;
+    pre->next = newNode;
+    return dummyNode->next;
+}
+
+ListNode* merge(ListNode *head1, ListNode *head2) {
+    ListNode* dummyNode;
+    ListNode* cur = dummyNode;
+    while (head1 && head2) {
+        if (head1->val <= head2->val) {
+            cur->next = head1;
+            head1 = head1->next;
+        }
+        else {
+            cur->next = head2;
+            head2 = head2->next;
+        }
+        cur = cur->next;
+    }
+    if (head1)  cur->next = head1;
+    if (head2)  cur->next = head2;
+    return dummyNode->next;
+}
+
+void BucketSort(int arr[], int len) {
+    vector<ListNode*> buckets(BUCKET_NUM, (ListNode*)(0));
+    for (int i = 0; i < n; ++i) {
+        int index = arr[i] / BUCKET_NUM;
+        ListNode *head = buckets[index];
+        buckets[index] = insert(head, arr[i]);
+    }
+    ListNode *head = buckets[0];
+    for (int i = 1; i < BUCKET_NUM; ++i)
+        head = merge(head, buckets[i]);
+    for (int i = 0; i < n; ++i) {
+        arr[i] = head->val;
+        head = head->next;
+    }
+}
+```
+
+<a id="radix-sort"></a>
+
+### RadixSort
+```cpp
+/*
+基数排序 (Radix Sort) 是桶排序的扩展
+基本思想是：将整数按位数切割成不同的数字，然后按每个位数分别比较
+
+具体做法是：将所有待比较数值统一为同样的数位长度，数位较短的数前面补零。
+然后，从最低位开始，依次进行一次排序。这样从最低位排序一直到最高位排序完成以后, 数列就变成一个有序序列
+*/
+
+// 最大数的位数
+int getMaxNumLen(int arr[], int len) {
+    int maxVal = arr[0];
+    for (int i = 1; i < len; ++i)
+        if (arr[i] > maxVal)
+            maxVal = arr[i];
+    int maxNumLen = 1;
+    int p = 10;
+    while (maxVal >= p) {
+        // 使用除法避免溢出
+        maxVal /= 10;
+        ++maxNumLen;
+    }
+    return maxNumLen;
+}
+
+// 按某位进行排序
+void countSort(int arr[], int len, int exp) {
+    // exp = 1, 2, 3... 对应个、十、百位...
+    int *output = new int[len];
+    int buckets[10] = { 0 };
+    int radix = 1;
+    while (--exp)
+        radix *= 10;
+    int i;
+    // 记录某位上数出现的次数
+    for (i = 0; i < len; ++i)
+        buckets[(arr[i] / radix) % 10]++;
+    // 便于逆序更新
+    for (i = 1; i < 10; ++i)
+        buckets[i] += buckets[i - 1];
+    // 将数据存储到临时数组
+    for (i = len - 1; i >= 0; --i) {
+        int num = (arr[i] / radix) % 10;
+        output[buckets[num] - 1] = arr[i];
+        buckets[num]--;
+    }
+    // 更新 arr
+    for (i = 0; i < len; ++i)
+        arr[i] = output[i];
+    delete[] output;
+}
+
+void radixSort(int arr[], int len) {
+    int maxNumLen = getMaxNumLen(arr, len);
+    // 从个位开始排序
+    for (int exp = 1; exp <= maxNumLen; ++exp) {
+        countSort(arr, len, exp);
+    }
+}
+```
