@@ -99,9 +99,13 @@
         - [几种模板插入的时间复杂度](#4-2-1)
 - [Linux操作系统](#5) 
     - [Linux 内核相关](#5-1)
+        - [内核态、用户态](#5-1-5)
     - [其他操作系统](#5-2)
         - [大小端](#5-2-1)
         - [一个程序从开始运行到结束的完整过程 (四个过程)](#5-2-2)
+        - [中断和异常](#5-2-8)
+        - [分页和分段](#5-2-9)
+        - [页面置换算法](#5-2-10)
 - [其他](#6)
     - [编程语言](#6-1)
         - [垃圾回收机制](#6-1-1) 
@@ -142,14 +146,15 @@
 
 ### 1.1.1 什么是进程、线程，彼此有什么区别 `⭐⭐⭐⭐⭐`
 
-进程是系统资源分配的独立实体，每个进程都拥有独立的地址空间。一个进程无法访问另一个进程的变量和数据结构，如果想让一个进程访问另一个进程的资源，需要使用进程间通信，比如管道，文件，套接字等。
+进程是系统资源分配的独立实体，每个进程都拥有独立的地址空间。一个进程无法访问另一个进程的变量和数据结构，如果想让一个进程访问另一个进程的资源，需要使用进程间通信，比如管道，文件，套接字等
 
  一个进程可以拥有多个线程，每个线程使用其所属进程的栈空间。线程与进程的一个主要区别是，同一进程内的多个线程会共享部分状态，多个线程可以读写同一块内存（一个进程无法直接访问另一进程的内存）。同时，每个线程还拥有自己的寄存器和栈，其他线程可以读写这些栈内存。
 
-线程是进程的一个实体，是进程的一条执行路径。
+线程是进程的一个实体，是进程的一条执行路径
 
-线程是进程的一个特定执行路径。当一个线程修改了进程的资源，它的兄弟线程可以立即看到这种变化。
-<div align="right"><a href="#content">⏫</a></div>
+线程是进程的一个特定执行路径。当一个线程修改了进程的资源，它的兄弟线程可以立即看到这种变化
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="1-1-2"></a>
 
 ### 1.1.2 多进程、多线程的优缺点 `⭐⭐⭐⭐` 
@@ -170,7 +175,8 @@
 |优点|编程、调试简单，可靠性较高|创建、销毁、切换速度快，内存、资源占用小|
 |缺点|创建、销毁、切换速度慢，内存、资源占用大|编程、调试复杂，可靠性较差|
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="1-1-3"></a>
 
 ### 1.1.3 什么时候用进程，什么时候用线程 `⭐⭐⭐` 
@@ -180,7 +186,8 @@
 - 并行操作时用线程，如 C/S 架构的服务器端并发线程响应用户的请求
 - 需要更稳定安全时，适合选择进程；需要速度时，选择线程更好
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="1-1-4"></a>
 
 ### 1.1.4 多进程、多线程同步 (通讯) 的方法 `⭐⭐⭐⭐⭐` 
@@ -232,11 +239,12 @@
 
 线程间通信的目的主要是用于线程同步，所以线程没有像进程通信中的用于数据交换的通信机制
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="1-1-5"></a>
 
 ### 1.1.5 进程的空间模型⭐⭐⭐⭐ 
-Linux 下使用虚拟内存空间给每一个进程，32 位操作系统下，每个进程都有独立的 4G 虚拟内存空间。
+Linux 下使用虚拟内存空间给每一个进程，32 位操作系统下，每个进程都有独立的 4G 虚拟内存空间
 
 其中包括：
 
@@ -251,7 +259,8 @@ Linux 下使用虚拟内存空间给每一个进程，32 位操作系统下，�
 
 > [参考](https://blog.csdn.net/gfgdsg/article/details/42709943)
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="1-1-6"></a>
 
 ### 1.1.6 进程线程的状态转换图 什么时候阻塞，什么时候就绪⭐⭐⭐ 
@@ -289,7 +298,8 @@ Linux 下使用虚拟内存空间给每一个进程，32 位操作系统下，�
 - 互斥是通过竞争对资源的独占使用，彼此之间不需要知道对方的存在，执行顺序是一个乱序
 - 同步是协调多个相互关联线程合作完成任务，彼此之间知道对方存在，执行顺序往往是有序的
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="1-2-2"></a>
 
 ### 1.2.2 线程同步与阻塞的关系?同步一定阻塞吗?阻塞一定同步吗? `⭐⭐⭐⭐` 
@@ -301,7 +311,8 @@ Linux 下使用虚拟内存空间给每一个进程，32 位操作系统下，�
 
 > 是不是可以理解为，线程同步时会产生阻塞，即“线程同步不一定发生阻塞、阻塞一定同步”？
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="1-2-3"></a>
 
 ### 1.2.3 并发，同步，异步，互斥，阻塞，非阻塞的理解 `⭐⭐⭐⭐⭐`
@@ -325,7 +336,8 @@ Linux 下使用虚拟内存空间给每一个进程，32 位操作系统下，�
 **并发**
 - 并发和并行都能表示两个或多个任务一起执行，但是并发偏重于任务交替执行，多个任务之间很可能是串行的，而并行是真正意义上的"同时执行"
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="1-3"></a>
 
 ## 1.3 孤儿进程、僵尸进程、守护进程的概念 
@@ -352,7 +364,8 @@ Linux 下使用虚拟内存空间给每一个进程，32 位操作系统下，�
 
 守护进程就是在后台运行，不与任何终端关联的进程，通常情况下守护进程在系统启动时就在运行，它们以 *root* 用户或者其他特殊用户 ( *apache* 和 *postfix* ) 运行，并能处理一些系统级的任务。习惯上守护进程的名字通常以 ***d*** 结尾 (*sshd*)，但这不是必须的。
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="1-3-2"></a>
 
 ### 1.3.2 如何创建守护进程：⭐⭐ 
@@ -438,7 +451,8 @@ int main() {
 }
 ```
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="1-3-4"></a>
 
 ### 1.3.4 补充
@@ -466,7 +480,7 @@ int main() {
 
 系统中的进程数量是有限的，虽然僵尸进程占用的资源和内存都比较少，但是它却占领着进程 `ID`，可能会导致系统无法再创建新的进程，因此及时清除僵尸进程很重要！
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 <div STYLE="page-break-after: always;"></div>
 
 <a id="2"></a>
@@ -503,7 +517,8 @@ C++ 允许重载 `new`/`delete` 操作符，特别的，布局 `new` 的就不�
 #### 内存区域
 `new` 操作符从自由存储区（`free store`）上为对象动态分配内存空间，而 `malloc` 函数从堆上动态分配内存。自由存储区是 C++ 基于 `new` 操作符的一个抽象概念，凡是通过 `new` 操作符进行内存申请，该内存即为自由存储区。而堆是操作系统中的术语，是操作系统所维护的一块特殊内存，用于程序的内存动态分配，C 语言使用 `malloc` 从堆上分配内存，使用 `free` 释放已分配的对应内存。自由存储区不等于堆，如上所述，布局 `new` 就可以不位于堆中
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-1-2"></a>
 
 ### 2.1.2 `malloc` 的底层实现 `⭐⭐⭐⭐` 
@@ -522,7 +537,8 @@ C++ 允许重载 `new`/`delete` 操作符，特别的，布局 `new` 的就不�
 
 Windows 下 32 位程序如果单纯看地址空间能有 4G 左右的内存可用，不过实际上系统会把其中 2G 的地址留给内核使用，所以此时程序最大能用2G的内存。除去其他开销，能用 `malloc` 申请到的内存只有 1.9G 左右
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-1-4"></a>
 
 ### 2.1.4 指针与引用的相同和区别；如何相互转换？⭐⭐⭐⭐⭐ 
@@ -566,7 +582,8 @@ C++ 保留 `struct` 关键字，原因
 - C++ 中的 `struct` 定义必须百分百地保证与 C 语言中的 `struct` 的向下兼容性，把 C++ 中的最基本的对象单元规定为 `class` 而不是 `struct`，就是为了避免各种兼容性要求的限制
 - 对 `struct` 定义的扩展使 C 语言的代码能够更容易的被移植到 C++ 中
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-1-12"></a>
 
 ### 2.1.12 `char` 和 `int` 之间的转换 `⭐⭐⭐` 
@@ -595,7 +612,8 @@ int ib = a - '0';
 3. 修饰**引用**，指向常量的引用 (`reference to const`)，用于形参类型，即避免了拷贝，又避免了函数对值的修改
 4. 修饰**成员函数**，说明该成员函数内不能修改成员变量
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-1-15"></a>
 
 ### 2.1.15 `const` 常量和 `#define` 的区别 (编译阶段、安全性、内存占用等)  `⭐⭐⭐⭐` 
@@ -648,7 +666,8 @@ void f1() {
 }
 ```
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-1-16"></a>
 
 ### 2.1.16 `volatile` 作用和用法 `⭐⭐⭐⭐⭐`
@@ -726,7 +745,8 @@ catch (bad_cast b) {
 } 
 ```
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-1-21"></a>
 
 ### 2.1.21 四种智能指针
@@ -795,7 +815,7 @@ ps = demo("unique");
 - 类内有访问其他 `shared_ptr` 对象时，指针类型设为 `weak_ptr` ，可以不改 `shared_ptr` 对象的引用计数
 - 代码中尽量不用 `delete` 关键字，因为内存的管理与释放全权交给对象处理
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="2-2"></a>
 
@@ -856,7 +876,8 @@ void test() {
 }
 ```
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-2-2"></a>
 
 ### 2.2.2 多态的类，内存布局是怎么样的 `⭐⭐⭐⭐⭐`
@@ -891,7 +912,8 @@ C++ 继承分为两种，普通继承和虚拟继承 ( `virtual` )。
 #### 多重继承
 > 2.2.1
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-2-3"></a>
 
 ### 2.2.3 被隐藏的基类函数如何调用或者子类调用父类的同名函数和父类成员变量 `⭐⭐⭐⭐⭐`
@@ -916,7 +938,8 @@ C++ 多态分类及实现：
 - 参数多态性（Parametric Polymorphism，编译期）：类模板、函数模板
 - 强制多态（Coercion Polymorphism，编译期/运行期）：基本类型转换、自定义类型转换
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-2-5"></a>
 
 ### 2.2.5 拷贝构造函数与深浅拷贝 `⭐⭐⭐`
@@ -943,7 +966,8 @@ C++ 多态分类及实现：
 具体一些可以这么讲：        
 当一个对象需要以值方式传递时，编译器会生成代码调用它的拷贝构造函数以生成一个副本。如果类 A 的拷贝构造函数是以值方式传递一个类 A 对象作为参数的话，当需要调用类A的拷贝构造函数时，需要以值方式传进一个A的对象作为实参；而以值方式传递需要调用类A的拷贝构造函数；结果就是调用类 A 的拷贝构造函数导致又一次调用类 A 的拷贝构造函数，这就是一个无限递归
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-2-6"></a>
 
 ### 2.2.6 什么情况下会调用拷贝构造函数 (三种情况) `⭐⭐⭐`
@@ -965,7 +989,8 @@ C++ 异常处理模型最大的特点和优势就是对 C++ 中的面向对象�
 
 把异常完全封装在析构函数内部 (`try catch`)，决不让异常抛出函数之外。这是一种非常简单，也非常有效的方法
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-2-8"></a>
 
 ### 2.2.8 析构函数一般写成虚函数的原因 `⭐⭐⭐⭐⭐`
@@ -984,7 +1009,8 @@ C++ 异常处理模型最大的特点和优势就是对 C++ 中的面向对象�
 
 在调用构造函数时，虚表指针并没有在对象的内存空间中，必须要构造函数调用完成后才会形成虚表指针
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-2-10"></a>
 
 ### 2.2.10 纯虚函数 `⭐⭐⭐⭐⭐`
@@ -1021,7 +1047,8 @@ void test() {
 }
 ```
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-2-11"></a>
 
 ### 2.2.11 静态绑定和动态绑定的介绍 `⭐⭐⭐⭐`
@@ -1033,7 +1060,8 @@ void test() {
 
 从上面的定义也可以看出，非虚函数一般都是静态绑定，而虚函数都是动态绑定（如此才可实现多态性）
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-2-12"></a>
 
 ### 2.2.12 C++ 的构造函数 `⭐⭐⭐`
@@ -1065,7 +1093,8 @@ void test() {
 - 引用类型，引用必须在定义的时候初始化，并且不能重新赋值，所以也要写在初始化列表里面
 - 没有默认构造函数的类类型，因为使用初始化列表可以不必调用默认构造函数来初始化
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="2-2-15"></a>
 
 ### 2.2.15 如何避免编译器进行的隐式类型转换 (explicit) `⭐⭐⭐⭐`
@@ -1153,7 +1182,7 @@ struct C: B
 
 `C::func()` 是否声明为 `override` 没关系，一旦一个虚函数被声明为 `final` ，派生类不能再重写它
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 
 
@@ -1196,7 +1225,8 @@ TCP 如何保证可靠传输：
 - 支持一对一、一对多、多对一、多对多的交互通信
 - 首部开销小
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="3-1-2"></a>
 
 ### 3.1.2 TCP、UDP 的优缺点⭐⭐⭐
@@ -1238,7 +1268,8 @@ TCP 如何保证可靠传输：
 
 结果就是目前 *WEB* 上就 *URL* 流行开了，平常见得 *URI* 基本都是 *URL*
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="3-2"></a>
 
 ## 3.2 三次握手、四次挥手 
@@ -1258,7 +1289,8 @@ TCP 如何保证可靠传输：
 - 第二次握手是为了让客户端知道连接已经成功建立。如果没有第二次握手，假如连接建立失败，此时客户端不知情，会继续发送数据，导致出错
 - 第三次握手是防止失效了的连接建立请求再次到达服务端，导致服务端试图再次建立连接，从而产生错误。所以，B 建立连接时需要再次向 A 进行确认
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="3-2-3"></a>
 
 ### 3.2.3 为什么服务端易受到 SYN 攻击? `⭐⭐⭐⭐`
@@ -1269,7 +1301,8 @@ TCP 三次握手在第二阶段容易受到攻击，即 SYN 泛洪攻击，如�
 - 又比如采用 SYN cookie 设置，如果短时间内连续收到某个 IP 的重复 SYN请求，则认为受到了该 IP 的攻击，丢弃来自该 IP 的后续请求报文
 - 此外合理地采用防火墙等外部网络安全设施也可缓解 SYN 泛洪攻击
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="3-2-4"></a>
 
 ### 3.2.4 什么是四次挥手 `⭐⭐⭐⭐⭐`
@@ -1281,7 +1314,8 @@ TCP 三次握手在第二阶段容易受到攻击，即 SYN 泛洪攻击，如�
 - 为了保证 A 发送的最后一个 `ACK` 报文段能够到达 B。即 A 等到 2MSL 后，当出现A发送的确认报文段丢失时，可以收到B超时重传报文段，从而再次确认，使连接正常释放
 - 防止 ”已失效的连接请求报文段“ 出现在本连接中。A 在发送完最后一个 `ACK` 报文段后，再经过时间 2MSL，就可以使本连接持续的时间内所产生的所有报文段，都从网络中消失。这样就可以使下一个新的连接中不会出现这种旧的连接请求报文段
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="3-2-6"></a>
 
 ### 3.2.6 为什么建立连接是三次握手，关闭连接却是四次挥手呢? `⭐⭐⭐⭐`
@@ -1294,7 +1328,8 @@ server 此时已经知道接收不到 client 的数据了，但是还可以给�
 前两次挥手，客户端关闭发送通道，服务端确认，将未发送完数据发完；
 后两次挥手，服务端关闭发送通道，客户端确认，服务端确认
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="3-3"></a>
 
 ## 3.3 应用层
@@ -1332,7 +1367,7 @@ server 此时已经知道接收不到 client 的数据了，但是还可以给�
 - 本地域名服务器向根域名服务器的查询通常是采用**迭代查询** (被请求的域名服务器若无法给出所需的 IP 地址，不帮忙继续发送查询请求报文，而是返回给请求者“**它下一步应当向哪一个域名服务器查询**”)
 
 ![dns](./image/dns.png)
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="3-3-2"></a>
 
@@ -1396,7 +1431,7 @@ HTTP 是**无状态**的，之所以说无状态是因为 **HTTP 对事务没有
 | 4XX  | 客户端错误，请求包含语法错误或无法完成请求     |
 | 5XX  | 服务器错误，服务器在处理请求的过程中发生了错误 |
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="3-3-3"></a>
 
@@ -1424,7 +1459,7 @@ HTTPS 是以**安全**为目标的 HTTP 通道，S 代表 *security*，让 HTTP 
 
 ![https](./image/https.png)
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <div STYLE="page-break-after: always;"></div>
 
@@ -1460,7 +1495,8 @@ HTTPS 是以**安全**为目标的 HTTP 通道，S 代表 *security*，让 HTTP 
 > * n：代表数据规模
 > * m：代表数据的最大值减最小值
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="4-1-2"></a>
 
 ### 4.1.2各种排序算法什么时候有最好情况、最坏情况 `⭐⭐⭐⭐`
@@ -1516,18 +1552,25 @@ HTTPS 是以**安全**为目标的 HTTP 通道，S 代表 *security*，让 HTTP 
 ### 5.1.2 用户空间与内核通信方式有哪些？⭐⭐⭐⭐⭐ 
 ### 5.1.3 系统调用 read()/write()，内核具体做了哪些事情⭐⭐ 
 ### 5.1.4 系统调用的作用⭐⭐⭐⭐⭐ 
-### 5.1.5 内核态，用户态的区别⭐⭐⭐⭐⭐ 
-### 5.1.6 bootloader 内核 根文件的关系⭐⭐⭐⭐ 
-### 5.1.7 Bootloader 多数有两个阶段的启动过程：⭐⭐⭐ 
-### 5.1.8 linux 的内核是由 bootloader 装载到内存中的？⭐⭐⭐ 
-### 5.1.9 为什么需要 BootLoader⭐⭐⭐⭐ 
-### 5.1.10 Linux 内核同步方式总结⭐⭐⭐⭐ 
-### 5.1.11 为什么自旋锁不能睡眠 而在拥有信号量时就可以？⭐⭐⭐⭐ 
-### 5.1.12 linux 下检查内存状态的命令⭐⭐⭐ 
+
+<a id="5-1-5"></a>
+
+### 5.1.5 内核态，用户态的区别 `⭐⭐⭐⭐⭐ `
+由于需要限制不同的程序之间的访问能力，防止他们获取别的程序的内存数据，或者获取外围设备的数据、并发送到网络，*CPU* 划分出两个权限等级: **用户态**和**内核态**
+
+**内核态**: *CPU* 可以访问内存所有数据，包括外围设备，例如硬盘、网卡。*CPU* 也可以将自己从一个程序切换到另一个程序
+
+**用户态**: 只能受限的访问内存，且不允许访问外围设备。占用 *CPU* 的能力被剥夺，*CPU* 资源可以被其他程序获取
+
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
+### 5.1.6 Linux 内核同步方式总结⭐⭐⭐⭐ 
+### 5.1.7 为什么自旋锁不能睡眠 而在拥有信号量时就可以？⭐⭐⭐⭐ 
+### 5.1.8 linux 命令⭐⭐⭐ 
 
 <a id="5-2"></a>
 
-## 5.2 其他操作系统 
+## 5.2 其他 
 
 <a id="5-2-1"></a>
 
@@ -1560,7 +1603,8 @@ bool isBigEndian2() {
 
 
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="5-2-2"></a>
 
 ### 5.2.2 一个程序从开始运行到结束的完整过程 (四个过程) `⭐⭐⭐⭐⭐` 
@@ -1569,10 +1613,90 @@ bool isBigEndian2() {
 ### 5.2.5 死锁的原因、条件 创建一个死锁，以及如何预防⭐⭐⭐⭐⭐ 
 ### 5.2.6 硬链接与软链接的区别；⭐⭐⭐⭐⭐ 
 ### 5.2.7 虚拟内存，虚拟地址与物理地址的转换⭐⭐⭐⭐ 
-### 5.2.8 计算机中，32bit 与 64bit 有什么区别⭐⭐⭐ 
-### 5.2.9 中断和异常的区别⭐⭐⭐⭐⭐ 
-### 5.2.10 中断怎么发生，中断处理大概流程⭐⭐⭐⭐ 
-### 5.2.11 Linux 操作系统挂起、休眠、关机相关命令⭐⭐ 
+
+<a id="5-2-8"></a>
+
+### 5.2.8 中断和异常的区别 `⭐⭐⭐⭐⭐` 
+中断是指 *CPU* 对系统发生的某个事件作出的一种反应：*CPU* 暂停正在执行的程序，保留现场后自动转去执行相应的处理程序，处理完该事件后再返回断点继续执行被“打断”的程序
+
+**中断类型**
+
+按照中断事件来源进行分类
+
+- 中断，由 *CPU* 以外的事件引起的中断，如 *I*/*O* 中断、时钟中断、控制台中断等
+- 异常，来自 *CPU* 的内部事件或程序执行中的事件引起的过程，如由 *CPU* 本身故障、程序故障和系统调用等
+
+**中断的一般处理过程**
+
+中断处理一般分为中断响应和中断处理两个步骤。中断响应由硬件实施，中断处理要由软件实施
+
+- 中断响应。硬件对中断请求作出的反应称为中断响应。一般来说，中断响应执行下述三步动作：①中止当前程序的执行；②保存原程序的断点信息；③转到相应的处理程序。通常 *CPU* 在执行一条指令后，立即检查有无中断请求，如有，则立即作出响应
+- 中断处理。中断响应后，就由中断处理程序进行相应处理。中断处理过程大致分为四个阶段：保存中断程序的现场，分析中断原因，转入相应处理程序进行处理，恢复被中断程序现场
+
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
+<a id="5-2-9"></a>
+
+### 5.2.9 分页、分段
+
+段式存储管理是**一种符合用户视角的内存分配管理**方案。在段式存储管理中，将程序的地址空间划分为若干段 (*segment*)，如代码段、数据段、堆栈段；这样每个进程有一个二维地址空间，相互独立，互不干扰。段式管理的优点是：**没有内碎片** (因为段大小可变，改变段大小来消除内碎片)。但段换入换出时，会产生**外碎片** (比如 4k 的段换 5k 的段，会产生 1k 的外碎片)
+
+页式存储管理方案是一种**用户视角内存与物理内存相分离的内存分配管理**方案。在页式存储管理中，将程序的逻辑地址划分为固定大小的页 (*page*)，而物理内存划分为同样大小的帧，程序加载时，可以将任意一页放入内存中任意一个帧，这些帧不必连续，从而实现了离散分离。页式存储管理的优点是：没有**外碎片** (因为页的大小固定)，但会产生**内碎片** (一个页可能填充不满)
+
+**两者的不同点**：
+
+- 目的不同：分页是由于系统管理的需要而不是用户的需要，它是信息的物理单位；分段的目的是为了能更好地满足用户的需要，它是信息的逻辑单位，它含有一组其意义相对完整的信息
+- 大小不同：页的大小固定且由系统决定，而段的长度却不固定，由其所完成的功能决定
+- 地址空间不同： 段向用户提供二维地址空间；页向用户提供的是一维地址空间
+- 信息共享：段是信息的逻辑单位，便于存储保护和信息的共享，页的保护和共享受到限制
+- 内存碎片：页式存储管理的优点是没有外碎片，但会产生内碎片；而段式管理的优点是没有内碎片，但段换入换出时，会产生外碎片
+
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
+<a id="5-2-10"></a>
+
+### 5.2.10 页面置换算法
+
+**最佳置换算法 (OPT)**
+
+最佳 (*Optimal*, *OPT*) 置换算法所选择的被淘汰页面**将是以后永不使用的，或者是在最长时间内不再被访问的页面**，这样可以保证获得最低的缺页率。但由于人们目前**无法预知**进程在内存下的若千页面中哪个是未来最长时间内不再被访问的，因而该算法**无法实现**
+
+**先进先出置换算法 (FIFO)**
+
+优先**淘汰最早进入内存的页面**，亦即在内存中驻留时间最久的页面。该算法实现简单，只需把调入内存的页面根据先后次序链接成队列，设置一个指针总指向最早的页面。但该算法与进程实际运行时的规律不适应，因为在进程中，有的页面经常被访问
+
+***FIFO*** 算法还会产生当所分配的**物理块数增大而页故障数不减反增**的异常现象，这是由 *Belady* 于1969年发现，故称为 *Belady* 异常。只有 ***FIFO*** 算法可能出现 *Belady* 异常，而 ***LRU*** 和 ***OPT*** 算法永远不会出现 *Belady* 异常
+
+**最近最久未使用置换算法 (LRU)**
+
+***LRU*** (*The Least Recently Used*) 选择**最近最长时间未访问过的页面予以淘汰**，它认为过去一段时间内未访问过的页面，在最近的将来可能也不会被访问。该算法为每个页面设置一个访问字段，来记录页面自上次被访问以来所经历的时间，淘汰页面时选择现有页面中值最大的予以淘汰
+
+**最近最少使用置换 (LFU)**
+
+***LFU*** (*Least Frequently Used*) 也是一种常见的缓存算法。***LFU*** 算法的思想是：如果一个数据在最近一段时间很少被访问到，那么可以认为在将来它被访问的可能性也很小。因此，当空间满时，**最小频率访问**的数据最先被淘汰
+
+**时钟置换算法**
+
+***LRU*** 算法的性能接近于 ***OPT***，但是实现起来比较困难，且开销大；***FIFO*** 算法实现简单，但性能差。所以操作系统的设计者尝试了很多算法，试图用比较小的开销接近 ***LRU*** 的性能，这类算法都是 ***CLOCK*** 算法的变体
+
+简单的 ***CLOCK*** 算法是给每一帧关联一个附加位，称为使用位。当某一页首次装入主存时，该帧的使用位设置为 1；当该页随后再被访问到时，它的使用位也被置为 1。对于页替换算法，用于替换的候选帧集合看做一个循环缓冲区，并且有一个指针与之相关联。当某一页被替换时，该指针被设置成指向缓冲区中的下一帧。当需要替换一页时，操作系统扫描缓冲区，以查找使用位被置为 0 的一帧。每当遇到一个使用位为 1 的帧时，操作系统就将该位重新置为 0；如果在这个过程开始时，缓冲区中所有帧的使用位均为 0，则选择遇到的第一个帧替换；如果所有帧的使用位均为 1,则指针在缓冲区中完整地循环一周，把所有使用位都置为 0，并且停留在最初的位置上，替换该帧中的页。由于该算法循环地检查各页面的情况，故称为 ***CLOCK*** 算法，又称为最近未用 (***Not Recently Used, NRU***) 算法
+
+***CLOCK*** 算法的性能比较接近 ***LRU***，而通过增加使用的位数目，可以使得 ***CLOCK*** 算法更加高效。在使用位的基础上再增加一个修改位，则得到改进型的 ***CLOCK*** 置换算法。这样，每一帧都处于以下四种情况之一：
+
+1. 最近未被访问，也未被修改 (u=0, m=0)
+2. 最近被访问，但未被修改 (u=1, m=0)
+3. 最近未被访问，但被修改 (u=0, m=1)
+4. 最近被访问，被修改 (u=1, m=1)
+
+算法执行如下操作步骤：
+
+1. 从指针的当前位置开始，扫描帧缓冲区。在这次扫描过程中，对使用位不做任何修改。选择遇到的**第一个帧** (u=0, m=0) 用于替换
+2. **如果第 1)步失败**，则重新扫描，查找 (u=0, m=1) 的帧。选择遇到的第一个这样的帧用于替换。在这个扫描过程中，对每个跳过的帧，把它的使用位设置成 0
+3. **如果第 2)步失败**，指针将回到它的最初位置，并且集合中所有帧的使用位均为 0。重复第 1 步，并且如果有必要，重复第 2 步。这样将可以找到供替换的帧
+
+
+
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 
 <div STYLE="page-break-after: always;"></div>
@@ -1622,7 +1746,8 @@ bool isBigEndian2() {
 
 目前大部分垃圾收集器对于新生代都采取 *Copying* 算法，因为新生代中每次垃圾回收都要回收大部分对象，也就是说需要复制的操作次数较少；而由于老年代的特点是每次回收都只回收少量对象，一般使用的是标记清除算法
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
 <a id="6-2"></a>
 
 ## 6.2 Git
@@ -1673,7 +1798,7 @@ $ git merge experiment
 
 **原则**：只对尚未推送或分享给别人的本地修改执行变基操作清理历史， 从不对已推送至别处的提交执行变基操作
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="6-3"></a>
 
@@ -1752,7 +1877,7 @@ G = (x * x for x in range(5))
 
 如果一个函数中包括 `yield` 关键字，调用这个函数就是创建了一个生成器对象
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 ### 6.3.3 装饰器
 
@@ -1786,7 +1911,7 @@ G = (x * x for x in range(5))
 
 进行阻塞操作时会阻塞整个程序
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="6-4"></a>
 
@@ -1935,7 +2060,7 @@ DROP TEMPORARY TABLE IF EXISTS temp_tb;
 
 
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 
 
@@ -2026,7 +2151,7 @@ DROP TEMPORARY TABLE IF EXISTS temp_tb;
 
 
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="6-4-3"></a>
 
@@ -2108,7 +2233,7 @@ create index index_birthday_and_user_name on user_info(birthday, user_name);
 
 通过这种覆盖索引直接查找的方式， 可以省略不使用覆盖索引查找的后面两个步骤，大大的提高了查询性能
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="6-4-4"></a>
 
@@ -2136,7 +2261,7 @@ create index index_birthday_and_user_name on user_info(birthday, user_name);
 
 
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="6-5"></a>
 
@@ -2170,7 +2295,7 @@ create index index_birthday_and_user_name on user_info(birthday, user_name);
 
 `zset` 成员是唯一的，但分数 (*score*) 却可以重复
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="6-5-2"></a>
 
@@ -2196,7 +2321,7 @@ create index index_birthday_and_user_name on user_info(birthday, user_name);
 - `RDB` 性能比 `AOF` 好
 - 如果两个都配了优先加载 `AOF`
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="6-5-3"></a>
 
@@ -2262,7 +2387,7 @@ create index index_birthday_and_user_name on user_info(birthday, user_name);
 
 服务降级的目的，是为了防止 *Redis* 服务故障，导致数据库跟着一起发生雪崩问题。因此，对于不重要的缓存数据，可以采取服务降级策略，例如一个比较常见的做法就是，*Redis* 出现问题，不去数据库查询，而是直接返回默认值给用户
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="6-5-4"></a>
 
@@ -2280,7 +2405,7 @@ create index index_birthday_and_user_name on user_info(birthday, user_name);
 - 单线程操作，避免了频繁的上下文切换
 - 采用了非阻塞 *I/O* 多路复用机制
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="6-5-6"></a>
 
@@ -2311,7 +2436,7 @@ create index index_birthday_and_user_name on user_info(birthday, user_name);
 
 如果没有设置 `expire` 的 `key`，不满足先决条件 (*prerequisites*)，那么 `volatile-lru`、`volatile-random` 和 `volatile-ttl` 策略的行为, 和 `noeviction` 基本上一致
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="6-5-7"></a>
 
@@ -2339,8 +2464,7 @@ create index index_birthday_and_user_name on user_info(birthday, user_name);
 
 
 
-
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 
 
@@ -2367,8 +2491,9 @@ create index index_birthday_and_user_name on user_info(birthday, user_name);
 - [基数排序](#radix-sort)
 
 <div align="right">
-    <a href="#content">⏫</a><a href="#4-1-1">↩️</a>
+    <a style="text-decoration:none" href="#content">⏫</a><a style="text-decoration:none" href="#4-1-1">↩️</a>
 </div>
+
 <a id="bubble-sort"></a>
 
 ### BubbleSort
@@ -2415,7 +2540,8 @@ void bubble_sort(T nums[], int len) {
 }
 ```
 
-<div align="right"><a href="#sort-algorithm">↩️</a></div>
+<div align="right"><a style="text-decoration:none" href="#sort-algorithm">↩️</a></div>
+
 <a id="selection-sort"></a>
 
 ### SelectionSort
@@ -2439,7 +2565,8 @@ void SelectionSort(vector<int> &nums) {
 }
 ```
 
-<div align="right"><a href="#sort-algorithm">↩️</a></div>
+<div align="right"><a style="text-decoration:none" href="#sort-algorithm">↩️</a></div>
+
 <a id="insert-sort"></a>
 
 ### InsertSort
@@ -2463,7 +2590,8 @@ void InsertSort(vector<int> &nums) {
 }
 ```
 
-<div align="right"><a href="#sort-algorithm">↩️</a></div>
+<div align="right"><a style="text-decoration:none" href="#sort-algorithm">↩️</a></div>
+
 <a id="quick-sort"></a>
 
 ### QuickSort
@@ -2497,7 +2625,8 @@ void QuickSort(vector<int> &nums, int low, int high) {
 }
 ```
 
-<div align="right"><a href="#sort-algorithm">↩️</a></div>
+<div align="right"><a style="text-decoration:none" href="#sort-algorithm">↩️</a></div>
+
 <a id="heap-sort"></a>
 
 ### HeapSort
@@ -2537,7 +2666,8 @@ void heap_sort(int nums[], int len) {
 }
 ```
 
-<div align="right"><a href="#sort-algorithm">↩️</a></div>
+<div align="right"><a style="text-decoration:none" href="#sort-algorithm">↩️</a></div>
+
 <a id="merge-sort"></a>
 
 ### MergeSort
@@ -2610,7 +2740,8 @@ void merge_sort(T arr[], const int& len) {
 }
 ```
 
-<div align="right"><a href="#sort-algorithm">↩️</a></div>
+<div align="right"><a style="text-decoration:none" href="#sort-algorithm">↩️</a></div>
+
 <a id="shell-sort"></a>
 
 ### ShellSort
@@ -2635,7 +2766,8 @@ void shell_sort(T arr[], int length) {
 }
 ```
 
-<div align="right"><a href="#sort-algorithm">↩️</a></div>
+<div align="right"><a style="text-decoration:none" href="#sort-algorithm">↩️</a></div>
+
 <a id="count-sort"></a>
 
 ### CountSort
@@ -2665,7 +2797,8 @@ void CountSort(vector<int>& vecRaw, vector<int>& vecObj) {
 }
 ```
 
-<div align="right"><a href="#sort-algorithm">↩️</a></div>
+<div align="right"><a style="text-decoration:none" href="#sort-algorithm">↩️</a></div>
+
 <a id="bucket-sort"></a>
 
 ### BucketSort
@@ -2743,7 +2876,8 @@ void BucketSort(int arr[], int len) {
 }
 ```
 
-<div align="right"><a href="#sort-algorithm">↩️</a></div>
+<div align="right"><a style="text-decoration:none" href="#sort-algorithm">↩️</a></div>
+
 <a id="radix-sort"></a>
 
 ### RadixSort
@@ -2807,7 +2941,7 @@ void radixSort(int arr[], int len) {
     }
 }
 ```
-<div align="right"><a href="#sort-algorithm">↩️</a></div>
+<div align="right"><a style="text-decoration:none" href="#sort-algorithm">↩️</a></div>
 
 <a id="smart-pointer"></a>
 
@@ -2861,4 +2995,4 @@ public:
 
 
 
-<div align="right"><a href="#content">⏫</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
