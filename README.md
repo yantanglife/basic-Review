@@ -214,8 +214,8 @@
 - **共享内存** (Shared Memory) ：映射一段能被其他进程所访问的内存，这段共享内存由一个进程创建，但多个进程都可以访问
     - 优点：无须复制，快捷，信息量大
     - 缺点：
-- 通信是通过将共享空间缓冲区直接附加到进程的虚拟地址空间中来实现的，因此进程间的读写操作的同步问题
-- 利用内存缓冲区直接交换信息，内存的实体存在于计算机中，只能同一个计算机系统中的诸多进程共享，不方便网络通信
+        - 通信是通过将共享空间缓冲区直接附加到进程的虚拟地址空间中来实现的，因此进程间的读写操作的同步问题
+        - 利用内存缓冲区直接交换信息，内存的实体存在于计算机中，只能同一个计算机系统中的诸多进程共享，不方便网络通信
 
 - **套接字** (Socket) ：可用于不同计算机间的进程通信
     - 优点：
@@ -517,6 +517,44 @@ C++ 允许重载 `new`/`delete` 操作符，特别的，布局 `new` 的就不�
 #### 内存区域
 `new` 操作符从自由存储区（`free store`）上为对象动态分配内存空间，而 `malloc` 函数从堆上动态分配内存。自由存储区是 C++ 基于 `new` 操作符的一个抽象概念，凡是通过 `new` 操作符进行内存申请，该内存即为自由存储区。而堆是操作系统中的术语，是操作系统所维护的一块特殊内存，用于程序的内存动态分配，C 语言使用 `malloc` 从堆上分配内存，使用 `free` 释放已分配的对应内存。自由存储区不等于堆，如上所述，布局 `new` 就可以不位于堆中
 
+#### 补充：关于 `new[]` 和 `delete` 的问题
+
+> [使用delete释放new[]的空间造成的错误分析](https://www.cnblogs.com/wangpei0522/p/4476470.html)
+> [浅谈 C++ 中的 new/delete 和 new[]/delete[]](https://www.cnblogs.com/hazir/p/new_and_delete.html)
+
+使用 `new[]` 用 `delete` 来释放对象的提前是：对象的类型是内置类型或者是无自定义的析构函数的类类型
+
+```cpp
+// no problem
+int *p = new int[10];
+delete p;
+// 
+class A {
+public:
+    int m;
+    ~A() {}
+};
+A* ptr = new A[10];
+// error
+delete ptr;  // delete ptr[]
+```
+
+在 `new[]` 一个对象数组时，需要保存数组的维度，*C++* 的做法是在分配数组空间时多分配了 4 个字节的大小，专门保存数组的大小，在 `delete[]` 时就可以取出这个保存的数，就知道了需要调用析构函数多少次了
+
+那对于 `delete ptr[]`
+
+- 调用析构函数的次数是从数组对象指针前面的 4 个字节中取出
+- 传入 `operator delete[]` 函数的参数不是数组对象的指针 `ptr`，而是 `ptr` 的值减 4
+
+但是，如果不调用析构函数呢 (如内置类型，这里的 `int` 数组)？那在 `new[]` 时就没必要多分配那 4 个字节，`delete []` 时直接到第二步释放为 `int` 数组分配的空间；如果使用 `delete p`，那么将会调用 `operator delete` 函数，传入的参数是分配给数组的起始地址，所做的事情就是释放掉这块内存空间，不存在问题
+
+如果是带有自定义析构函数的类类型，用 `new[]` 来创建类对象数组，那么 `delete ptr`， 做了两件事：
+
+- 调用一次 `ptr` 指向的对象的析构函数
+- 调用 `operator delete(ptr)` 释放内存
+
+显然，这里只对数组的第一个类对象调用了析构函数，后面的对象均没调用析构函数，如果类对象中申请了大量的内存需要在析构函数中释放，却在销毁数组对象时少调用了析构函数，这会造成内存泄漏。直接释放 `ptr` 指向的内存空间，这个总是会造成严重的段错误，程序必然会奔溃！因为分配的空间的起始地址是 `ptr` 指向的地方减去 4 个字节的地方
+
 <div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="2-1-2"></a>
@@ -604,6 +642,21 @@ int ib = a - '0';
 3. 修饰**成员变量**，修饰成员变量使所有的对象只保存一个该变量，而且不需要生成对象就可以访问该成员
 4. 修饰**成员函数**，修饰成员函数使得不需要生成对象就可以访问该函数，但是在 `static` 函数内不能访问非静态成员
 
+**不可以同时用 `const` 和 `static` 修饰成员函数**
+
+在实现 `const` 的成员函数的时候为了确保该函数不能修改类的实例的状态，会在函数中添加一个隐式的参数 `const this*`。但当一个成员为 `static` 的时候，该函数是没有 `this` 指针的。也就是说此时 `const` 的用法和 `static` 是冲突的
+
+```cpp
+class Demo {
+//...
+    // error.
+    static void func() const { /*...*/ }
+//...
+}
+```
+
+
+
 <a id="2-1-14"></a>
 
 ### 2.1.14 `const` 的用法 (定义和用途) `⭐⭐⭐⭐⭐`
@@ -611,6 +664,15 @@ int ib = a - '0';
 2. 修饰**指针**，分为指向常量的指针 (`pointer to const`) 和自身是常量的指针 (常量指针，`const pointer`)
 3. 修饰**引用**，指向常量的引用 (`reference to const`)，用于形参类型，即避免了拷贝，又避免了函数对值的修改
 4. 修饰**成员函数**，说明该成员函数内不能修改成员变量
+
+**`const` 修饰成员函数**
+
+- `const` 在函数后面表示函数不可以修改这个类的成员变量
+  - 只能读取数据成员，不能改变数据成员
+  - 常量 (即 `const`) 对象可以调用 `const` 成员函数，而不能调用非 `const` 修饰的函数
+  - 对于 `const` 成员函数，不能修改类的数据成员，不能在函数中调用其他不是 `const` 的函数
+- `const` 在函数前面用于描述返回值，表示返回一个常量
+
 
 <div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
@@ -933,10 +995,10 @@ C++ 继承分为两种，普通继承和虚拟继承 ( `virtual` )。
 3. 父类指针指向子类对象
 
 C++ 多态分类及实现：
-- 重载多态（Ad-hoc Polymorphism，编译期）：函数重载、运算符重载
-- 子类型多态（Subtype Polymorphism，运行期）：虚函数
-- 参数多态性（Parametric Polymorphism，编译期）：类模板、函数模板
-- 强制多态（Coercion Polymorphism，编译期/运行期）：基本类型转换、自定义类型转换
+- 重载多态 (Ad-hoc Polymorphism，编译期)：函数重载、运算符重载
+- 子类型多态 (Subtype Polymorphism，运行期)：虚函数
+- 参数多态性 (Parametric Polymorphism，编译期)：类模板、函数模板
+- 强制多态 (Coercion Polymorphism，编译期/运行期)：基本类型转换、自定义类型转换
 
 <div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
@@ -1176,7 +1238,7 @@ struct B: A
 };
 struct C: B
 {
- void func()const; //error, B::func is final
+ void func() const; //error, B::func is final
 };
 ```
 
@@ -1611,8 +1673,8 @@ bool isBigEndian2() {
 ### 5.2.3 什么是堆，栈，内存泄漏和内存溢出？⭐⭐⭐⭐ 
 ### 5.2.4 堆和栈的区别⭐⭐⭐⭐⭐ 
 ### 5.2.5 死锁的原因、条件 创建一个死锁，以及如何预防⭐⭐⭐⭐⭐ 
-### 5.2.6 硬链接与软链接的区别；⭐⭐⭐⭐⭐ 
-### 5.2.7 虚拟内存，虚拟地址与物理地址的转换⭐⭐⭐⭐ 
+### 5.2.6 硬链接与软链接的区别⭐⭐⭐⭐⭐ 
+### 5.2.7 虚拟内存、虚拟地址与物理地址的转换⭐⭐⭐⭐ 
 
 <a id="5-2-8"></a>
 
@@ -1656,6 +1718,8 @@ bool isBigEndian2() {
 <a id="5-2-10"></a>
 
 ### 5.2.10 页面置换算法
+
+> [附录-LRU、LFU](#page-replace-algo)
 
 **最佳置换算法 (OPT)**
 
@@ -1737,12 +1801,12 @@ bool isBigEndian2() {
 *coping* 基本思路是把整个内存空间一分为二 (`From`, `To`)，所有对象的内存在 `From` 中分配，当 `From` 塞满的时候，同样从寄存器和程序栈上的引用出发，遍历以对象为节点、以引用为边构成的图，把所有可以访问到的对象复制到 `To` 去，然后对调 `From` 和 `To` 的角色
 
 - 解决内存碎片。所有的对象在内存中永远都是紧密排列的，所以分配内存的任务变得极为简单，只要移动一个指针即可
-- 由于不需要清扫整个内存空间，所以如果内存中存活对象很少而垃圾对象很多的话，触发 GC 造成的中断时间会小于**标记-清扫**
+- 由于不需要清扫整个内存空间，所以如果内存中存活对象很少而垃圾对象很多的话，触发 `GC` 造成的中断时间会小于**标记-清扫**
 - 空间换时间
 
 #### 分代收集
 
-*Generational Collection* 核心思想是根据对象存活的生命周期将内存划分为若干个不同的区域。一般情况下将堆区划分为老年代（Tenured Generation）和新生代（Young Generation），老年代的特点是每次垃圾收集时只有少量对象需要被回收，而新生代的特点是每次垃圾回收时都有大量的对象需要被回收，那么就可以根据不同代的特点采取最适合的收集算法
+*Generational Collection* 核心思想是根据对象存活的生命周期将内存划分为若干个不同的区域。一般情况下将堆区划分为老年代 (Tenured Generation) 和新生代 (Young Generation)，老年代的特点是每次垃圾收集时只有少量对象需要被回收，而新生代的特点是每次垃圾回收时都有大量的对象需要被回收，那么就可以根据不同代的特点采取最适合的收集算法
 
 目前大部分垃圾收集器对于新生代都采取 *Copying* 算法，因为新生代中每次垃圾回收都要回收大部分对象，也就是说需要复制的操作次数较少；而由于老年代的特点是每次回收都只回收少量对象，一般使用的是标记清除算法
 
@@ -1790,11 +1854,11 @@ $ git merge experiment
 
 ![rebase-merge](./image/git/rebase-merge.png)
 
-此时，`C4'` 指向的快照就和 [the merge example](#merge-example) 中的 `C5` 指向的快照一模一样了。这两种整合方法的最终结果没有任何区别，但是变基使得提交历史更加整洁。 你在查看一个经过变基的分支的历史记录时会发现，尽管实际的开发工作是并行的， 但它们看上去就像是串行的一样，提交历史是一条直线没有分叉
+此时，`C4'` 指向的快照就和 [the merge example](#merge-example) 中的 `C5` 指向的快照一模一样了。这两种整合方法的最终结果没有任何区别，但是变基使得提交历史更加整洁。你在查看一个经过变基的分支的历史记录时会发现，尽管实际的开发工作是并行的，但它们看上去就像是串行的一样，提交历史是一条直线没有分叉
 
-一般我们这样做的目的是为了确保在向远程分支推送时能保持提交历史的整洁——例如向某个其他人维护的项目贡献代码时。 在这种情况下，你首先在自己的分支里进行开发，当开发完成时你需要先将你的代码变基到 `origin/master` 上，然后再向主项目提交修改。 这样的话，该项目的维护者就不再需要进行整合工作，只需要快进合并便可
+一般我们这样做的目的是为了确保在向远程分支推送时能保持提交历史的整洁——例如向某个其他人维护的项目贡献代码时。在这种情况下，你首先在自己的分支里进行开发，当开发完成时你需要先将你的代码变基到 `origin/master` 上，然后再向主项目提交修改。这样的话，该项目的维护者就不再需要进行整合工作，只需要快进合并便可
 
-请注意，无论是通过变基，还是通过三方合并，整合的最终结果所指向的快照始终是一样的，只不过提交历史不同罢了。 变基是将一系列提交按照原有次序依次应用到另一分支上，而合并是把最终结果合在一起
+请注意，无论是通过变基，还是通过三方合并，整合的最终结果所指向的快照始终是一样的，只不过提交历史不同罢了。变基是将一系列提交按照原有次序依次应用到另一分支上，而合并是把最终结果合在一起
 
 **原则**：只对尚未推送或分享给别人的本地修改执行变基操作清理历史， 从不对已推送至别处的提交执行变基操作
 
@@ -2145,6 +2209,12 @@ DROP TEMPORARY TABLE IF EXISTS temp_tb;
 
 行锁防止别的事务修改或删除，*GAP* 锁防止别的事务新增，行锁和 *GAP* 锁结合形成的的 *Next-Key* 锁共同解决了 `RR` 级别在写数据时的幻读问题
 
+> [史上最详尽，一文讲透 MVCC 实现原理](https://blog.csdn.net/DILIGENT203/article/details/100751755)
+
+但是，根据上面文章中 6-2、6-3 所说，如果当前事务更新到了其他事务新插入并提交了的数据，这就会造成该行数据的 ***DB_TRX_ID*** 被更新为当前事务 ***ID***，**此后即便进行快照读，依然会查出该行数据，产生幻读**
+
+
+
 #### Serializable
 
 这个级别很简单，读加共享锁，写加排他锁，读写互斥。使用的悲观锁的理论，实现简单，数据更加安全，但是并发能力非常差
@@ -2200,7 +2270,7 @@ DROP TEMPORARY TABLE IF EXISTS temp_tb;
 
 #### 覆盖索引
 
-有一种例外可以不使用聚集索引就能查询出所需要的数据， 这种非主流的方法 称之为 “覆盖索引” 查询， 也就是平时所说的**复合索引或者多字段索引查询**。当为字段建立索引以后，**字段中的内容会被同步到索引之中**， 如果为一个索引指定两个字段，那么这个两个字段的内容都会被同步至索引之中
+有一种例外可以不使用聚集索引就能查询出所需要的数据，这种非主流的方法称之为 “覆盖索引” 查询，也就是平时所说的**复合索引或者多字段索引查询**。当为字段建立索引以后，**字段中的内容会被同步到索引之中**，如果为一个索引指定两个字段，那么这个两个字段的内容都会被同步至索引之中
 
 **例子**
 
@@ -2231,7 +2301,7 @@ create index index_birthday_and_user_name on user_info(birthday, user_name);
 
 然而，叶节点中除了有 `user_name` 表主键 `ID` 的值以外，`user_name` 字段的值也在里面，因此不需要通过主键 `ID` 值的查找数据行的真实所在，直接取得叶节点中 `user_name` 的值返回即可
 
-通过这种覆盖索引直接查找的方式， 可以省略不使用覆盖索引查找的后面两个步骤，大大的提高了查询性能
+通过这种覆盖索引直接查找的方式，可以省略不使用覆盖索引查找的后面两个步骤，大大的提高了查询性能
 
 <div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
@@ -2399,7 +2469,7 @@ create index index_birthday_and_user_name on user_info(birthday, user_name);
 
 ### 6.5.5 单线程的 Redis
 
-因为 *Redis* 是基于内存的操作， *CPU* 不是 *Redis* 的瓶颈，*Redis* 的瓶颈最有可能是机器内存的大小或者网络带宽。既然单线程容易实现，而且 *CPU* 不会成为瓶颈，那就顺理成章地采用单线程的方案了 (笔记采用多线程会有很多麻烦)，*Redis* 利用队列技术将并发访问变为串行访问
+因为 *Redis* 是基于内存的操作， *CPU* 不是 *Redis* 的瓶颈，*Redis* 的瓶颈最有可能是机器内存的大小或者网络带宽。既然单线程容易实现，而且 *CPU* 不会成为瓶颈，那就顺理成章地采用单线程的方案了 (采用多线程会有很多麻烦)，*Redis* 利用队列技术将并发访问变为串行访问
 
 - 纯内存操作
 - 单线程操作，避免了频繁的上下文切换
@@ -2996,3 +3066,124 @@ public:
 
 
 <div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
+<a id="page-replace-algo"></a>
+
+## LRU、LFU
+
+<div align="right"><a style="text-decoration:none" href="#5-2-10">↩️</a><a style="text-decoration:none" href="#content">⏫</a></div>
+
+### LRU
+
+使用一个 `hash` 表和一个双向链表 `list`，链表元素为 `<key, value>`，更新时把数据插入到链表头部，删除时是删除链表尾部元素
+
+```cpp
+class LRUCache {
+public:
+    LRUCache(int capacity) : m_capacity(capacity) {
+
+    }
+    
+    int get(int key) {
+        auto it = m_table.find(key);
+        if (it != m_table.end()) {
+            m_list.splice(m_list.begin(), m_list, it->second);
+            return it->second->second;
+        }
+        return -1;
+    }
+    
+    void put(int key, int value) {
+        auto it = m_table.find(key);
+        if (it != m_table.end()) {
+            m_list.splice(m_list.begin(), m_list, it->second);
+            it->second->second = value;
+            return ;
+        }
+        m_list.emplace_front(key, value);
+        m_table[key] = m_list.begin();
+        if (m_table.size() > m_capacity) {
+            m_table.erase(m_list.back().first);
+            m_list.pop_back();
+        }
+    }
+private:
+    unordered_map<int, std::list<std::pair<int, int>>::iterator> m_table;
+    std::list<std::pair<int, int>> m_list;
+    int m_capacity;
+};
+```
+
+<div align="right"><a style="text-decoration:none" href="#page-replace-algo">↩️</a></div>
+
+### LFU
+
+使用两个 `hash` 表，第一个 `hash` 表存放 `<key, list<node>::iterator>` ，判断 `key` 是否在 `hash` 表中；第二个 `hash` 表存放 `<count, list<node>>` ，更新时把 `iterator` 插到对应 `list` 的头部，删除时是删除最小 `count` 对应 `list` 的尾部
+
+```cpp
+class LFUCache {
+public:
+    struct node {
+        int key;
+        int value;
+        int count;
+        node(int a, int b, int c) : key(a), value(b), count(c) {}
+    };
+    LFUCache(int capacity) : _capacity(capacity), min_cnt(1) {
+
+    }
+    
+    int get(int key) {
+        if (_capacity == 0)    return -1;
+        auto it = map_kv.find(key);
+        if (it == map_kv.end())
+            return -1;
+        int val = it->second->value;
+        int cnt = it->second->count;
+        // update map_cnt
+        map_cnt[cnt + 1].push_front(node(key, val, cnt + 1));
+        map_cnt[cnt].erase(it->second);
+        // update min_cnt;
+        if (min_cnt == cnt && map_cnt[cnt].size() == 0) {
+            ++min_cnt;
+        }
+        // update map_kv
+        map_kv[key] = map_cnt[cnt + 1].begin();
+        return val;
+    }
+    
+    void put(int key, int value) {
+        if (_capacity == 0) return ;
+        auto it = map_kv.find(key);
+        if (it == map_kv.end()) {
+            if (map_kv.size() >= _capacity) {
+                int deltetKey = map_cnt[min_cnt].back().key;
+                map_cnt[min_cnt].pop_back();
+                map_kv.erase(deltetKey);
+            }
+            min_cnt = 1;
+            map_cnt[min_cnt].push_front(node(key, value, 1));
+            map_kv[key] = map_cnt[min_cnt].begin();
+        }
+        else {
+            int cnt = it->second->count;
+            map_cnt[cnt + 1].push_front(node(key, value, cnt + 1));
+            map_cnt[cnt].erase(it->second);
+            map_kv[key] = map_cnt[cnt + 1].begin();
+            if (min_cnt == cnt && map_cnt[cnt].size() == 0) {
+                ++min_cnt;
+            }
+        }
+    }
+private:
+    int _capacity;
+    int min_cnt;
+    unordered_map<int, list<node>::iterator> map_kv;
+    unordered_map<int, list<node>> map_cnt;
+
+};
+```
+
+<div align="right"><a style="text-decoration:none" href="#page-replace-algo">↩️</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
