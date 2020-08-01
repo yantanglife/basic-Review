@@ -70,7 +70,7 @@
         - [TCP、UDP 优缺点](#3-1-2)
         - [TCP、UDP 适用场景](#3-1-3)
         - [TCP 为什么是可靠连接](#3-1-4)
-        - [典型网络模型，简单说说有哪些](#3-1-5)
+        - [TCP 连接中客户端意外断开](#3-1-5)
         - [Http1.1 和 Http1.0 的区别](#3-1-6)
         - [URI (统一资源标识符) 和 URL (统一资源定位符) 之间的区别](#3-1-7)
     - [三次握手、四次挥手 ](#3-2)
@@ -148,7 +148,7 @@
 
 进程是系统资源分配的独立实体，每个进程都拥有独立的地址空间。一个进程无法访问另一个进程的变量和数据结构，如果想让一个进程访问另一个进程的资源，需要使用进程间通信，比如管道，文件，套接字等
 
- 一个进程可以拥有多个线程，每个线程使用其所属进程的栈空间。线程与进程的一个主要区别是，同一进程内的多个线程会共享部分状态，多个线程可以读写同一块内存（一个进程无法直接访问另一进程的内存）。同时，每个线程还拥有自己的寄存器和栈，其他线程可以读写这些栈内存。
+ 一个进程可以拥有多个线程，每个线程使用其所属进程的栈空间。线程与进程的一个主要区别是，同一进程内的多个线程会共享部分状态，多个线程可以读写同一块内存 (一个进程无法直接访问另一进程的内存)。同时，每个线程还拥有自己的寄存器和栈，其他线程可以读写这些栈内存
 
 线程是进程的一个实体，是进程的一条执行路径
 
@@ -381,7 +381,7 @@ Linux 下使用虚拟内存空间给每一个进程，32 位操作系统下，�
 #include<stdlib.h>
 #include<signal.h>
 
-static voidsig_child(int signo);
+static void sig_child(int signo);
 
 int main() {
     ...
@@ -1303,7 +1303,22 @@ TCP 如何保证可靠传输：
 
 <a id="3-1-5"></a>
 
-### 3.1.5 典型网络模型，简单说说有哪些；⭐⭐⭐
+### 3.1.5 TCP 连接中客户端意外断开
+
+> [TCP状态详解-8.TCP通信中服务器处理客户端意外断开](https://www.cnblogs.com/liqingwang/p/10265503.html)
+
+**利用 KeepAlive**
+其实 keepalive 的原理就是 TCP 内嵌的一个心跳包
+
+以服务器端为例，如果当前 *server* 端检测到超过一定时间 (默认是 7,200,000 *milliseconds*，也就是2个小时) 没有数据传输，那么会向 *client* 端发送一个 keep-alive packet (该 keep-alive packet 就是 ACK 和当前 TCP 序列号减一的组合)，此时 *client* 端应该为以下三种情况之一：
+
+1.  ***client* 端仍然存在，网络连接状况良好**。此时 *client* 端会返回一个 ACK。*server* 端接收到 ACK 后重置计时器 (复位存活定时器)，在2小时后再发送探测。如果 2 小时内连接上有数据传输，那么在该时间基础上向后推延 2 个小时
+2.  **客户端异常关闭，或是网络断开**。在这两种情况下，*client* 端都不会响应。服务器没有收到对其发出探测的响应，并且在一定时间 (系统默认为1000 *ms*) 后重复发送 keep-alive packet，并且重复发送一定次数 (2000 XP 2003 系统默认为5次, Vista后的系统默认为10次)
+3.  **客户端曾经崩溃，但已经重启**。这种情况下，服务器将会收到对其存活探测的响应，但该响应是一个复位，从而引起服务器对连接的终止
+
+对于应用程序来说，2 小时的空闲时间太长。因此需要手工开启Keepalive 功能并设置合理的 Keepalive 参数
+
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="3-1-6"></a>
 
@@ -1523,6 +1538,45 @@ HTTPS 是以**安全**为目标的 HTTP 通道，S 代表 *security*，让 HTTP 
 
 <div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
+<a id="3-4"></a>
+
+## 3.4 其他
+
+<a id="3-4-1"></a>
+
+### 3.4.1 ICMP
+
+IP 协议是一种无连接的，不可靠的数据包协议，它并不能保证数据一定被送达，那么要保证数据送到就需要通过其它模块来协助实现，这里就引入的是 ICMP 协议；当传送的 IP 数据包发送异常的时候，ICMP 就会将异常信息封装在包内，然后回传给源主机
+
+**类型**
+
+- 差错报文类型
+  - 终点不可达
+  - 源点抑制
+  - 时间超过
+  - 参数问题
+  - 改变路由
+
+- 询问报文
+  - 回送请求
+  - 回送回答
+  - 时间戳请求
+  - 时间戳会带
+
+
+
+#### ping
+
+用来测试两个主机之间的连通性。PING 使用了 ICMP 回送请求与回送回答报文。PING 是应用层直接使用网络层 ICMP 的例子，它没有通过运输层的 TCP 或 UDP
+
+#### tracert
+
+用来跟踪一个分组从源点到终点的路径。它利用 IP 数据报中的 TTL 字段和 ICMP 时间超过差错报告报文实现对从源点到终点的路径的跟踪。在源主机发送 UDP 数据包给目标主机的时候，会设置一个不可能达到的目标端口号 (例如大于30000的端口号)，那么当这个数据包真的到达目标主机的时候，目标主机发现没有对应的端口号，因此会产生一份“端口不可达”的错误 ICMP 报文返回给源主机
+
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
+
+
+
 <div STYLE="page-break-after: always;"></div>
 
 <a id="4"></a>
@@ -1535,7 +1589,7 @@ HTTPS 是以**安全**为目标的 HTTP 通道，S 代表 *security*，让 HTTP 
 
 <a id="4-1-1"></a>
 
-### 4.1.1各种排序算法的时间空间复杂度、稳定性 `⭐⭐⭐⭐⭐`
+### 4.1.1各种排序算法的时间空间复杂度、稳定性
 
 > [附录-排序算法](#sort-algorithm)
 
@@ -1561,7 +1615,7 @@ HTTPS 是以**安全**为目标的 HTTP 通道，S 代表 *security*，让 HTTP 
 
 <a id="4-1-2"></a>
 
-### 4.1.2各种排序算法什么时候有最好情况、最坏情况 `⭐⭐⭐⭐`
+### 4.1.2各种排序算法什么时候有最好情况、最坏情况
 
 
 
@@ -1571,35 +1625,105 @@ HTTPS 是以**安全**为目标的 HTTP 通道，S 代表 *security*，让 HTTP 
 
 <a id="4-2-1"></a>
 
-### 4.2.1 `vector` `list`异同⭐⭐⭐⭐⭐ 
+### 4.2.1 `vector` `list`异同
+
+`vector` 底层实现是数组；`list` 是双向链表
+
+`vector` 支持随机访问，随机访问性能好，插入删除 (非尾节点) 性能差；`list` 不支持，随机访问性能差，插入删除性能好
+
+`vector` 是顺序内存；`list` 不是
+
+`vector` 在中间节点进行插入删除会导致内存拷贝；`list` 不会
+
+`vector` 一次性分配好内存，不够时进行 2倍扩容；`list` 每次插入新节点时都会进行内存申请
+
+**使用**
+
+`vector` 拥有一段连续的内存空间，因此支持随机访问，如果需要高效的随机访问，而不在乎插入删除的效率，使用 `vector`
+
+`list` 拥有一段不连续的内存空间，如果需要高效的插入和删除，而不关心随机访问，则应该使用 `list`
+
+
 
 <a id="4-2-2"></a>
 
-### 4.2.2 `vector` 内存是怎么增长的 ⭐⭐⭐⭐ 
+### 4.2.2 `vector` 内存是怎么增长的
+
+**释放 `vector` 内存**
+
+创建临时的 `vector` 变量，`swap` 交换后临时变量会在该语句结束后自动释放内存，达到释放原有 `vector` 内存的目的 
+
+```cpp
+std::vector<int>().swap(nums); // nums.swap(std::vector<int>());
+```
+
+
 
 <a id="4-2-3"></a>
 
-### 4.2.3 `vector` 和 `deque` 的比较⭐⭐⭐⭐ 
+### 4.2.3 `vector` 和 `deque` 的比较
+
+`vector` 的底层实现是数组；而 `deque` 的底层实现是“中央控制区”和缓冲的结构
+
+`vector` 的内存空间是连续的；而 `deque` 的内存空间是一种假的连续，实际上是不连续的
+
+`vecotr` 支持数组的随机访问；而 `deque` 虽然也是支持使用 `[]` 的运算符，但实际上是需要通过中央控制器二次寻址的，效率比`vector` 略低
+
+`vector` 在空间不够，重新申请新空间的策略是先申请一块比原来空间大的空间 (1.5倍或 2倍) 将原来的数据拷贝一份到新的空间中，然后将原来的空间的释放；而 `deque` 的策略是申请一块固定大小 (默认大小：512bytes) 的空间，然后将该空间的地址存放在中央控制器中，并没有数据拷贝和空间的释放的过程，所以扩容时 `deque` 的效率要高于 `vector`
+
+`vector`在对尾部进行插入 (未发生扩容) 和删除的效率是 `O(1)`；而 `deque` 在尾部和头部的插入和删除的效率都是 O(1)
+
+**使用**
+
+`vector` 适用于对容器中元素进行频繁访问的情况；而 `deque` 适用于元素的频繁访问，并且在数据需要在头部和尾部进行插入和删除的情况
 
 <a id="4-2-4"></a>
 
-### 4.2.4 `sort` ⭐⭐⭐ 
+### 4.2.4 `sort` 
 
 <a id="4-2-5"></a>
 
-### 4.2.5 `STL` 底层数据结构实现⭐⭐⭐⭐ 
+### 4.2.5 `erase()` 、`remove()`
+
+因为 `remove()` 无法知道它正在操作的容器，所以 `remove()` 不可能从一个容器中除去元素。即从一个容器中 `remove` 元素不会改变容器中元素的个数。当发现目标元素时，后面的元素会往前覆盖，函数最后返回"指向最后一个'有用'元素的 `iterator`"
+
+```cpp
+std::vector<int> vec = { 1,2,3,9,1 };
+auto it = std::remove(vec.begin(), vec.end(), 2); // {1,3,9,1,1}
+cout << vec.size() << " " << *it << " " << it - vec.begin(); // 5 1 4
+```
+
+如果真的要删除东西的话，应该在 `remove` 后面接上 `erase`
+
+```cpp
+std::vector<int> vec = { 1,2,3,9,1 };
+auto it = std::remove(vec.begin(), vec.end(), 2);
+vec.erase(it, vec.end()); // {1,3,9,1}
+```
+
+
+
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
 <a id="4-2-6"></a>
 
-### 4.2.6 利用迭代器删除元素会发生什么? ⭐⭐⭐⭐ 
+### 4.2.6 `STL` 底层数据结构实现
+
+`stack` 可以用 `vector`，`deque`，`list` 实现
+`queue` 可以用 `deque`，`list` 实现
+`priority_queue` 可以用 `deque`，`vector` 实现
 
 <a id="4-2-7"></a>
 
-### 4.2.7 `map` 是如何实现的，查找效率是多少⭐⭐⭐⭐⭐ 
+### 4.2.7 利用迭代器删除元素会发生什么? 
 
 <a id="4-2-8"></a>
 
-### 4.2.8 几种模板插入的时间复杂度 ⭐⭐⭐⭐⭐ 
+### 4.2.8 `map` 是如何实现的，查找效率是多少
+
+<a id="4-2-9"></a>
+
+### 4.2.9 几种模板插入的时间复杂度
 
 <div STYLE="page-break-after: always;"></div>
 
@@ -2416,8 +2540,10 @@ create index index_birthday_and_user_name on user_info(birthday, user_name);
 
 **解决方法**
 
-- 最常见的则是采用**布隆过滤器**，将所有可能存在的数据哈希到一个足够大的 `bitmap` 中，一个一定不存在的数据会被这个 `bitmap` 拦截掉，从而避免了对底层存储系统的查询压力
+- 最常见的则是采用**布隆过滤器 (*BloomFilter*)**，将所有可能存在的数据哈希到一个足够大的 `bitmap` 中，一个一定不存在的数据会被这个 `bitmap` 拦截掉，从而避免了对底层存储系统的查询压力
 - 另外也有一个更为**简单粗暴的方法**，如果一个查询返回的数据为空 (不管是数据不存在，还是系统故障)，我们仍然把这个空结果进行缓存，但它的过期时间会很短，最长不超过五分钟。通过这个直接设置的默认值存放到缓存，这样第二次到缓冲中获取就有值了，而不会继续访问数据库，这种办法最简单粗暴
+
+> [附录-布隆过滤器](#bloom-filter)
 
 #### 缓存击穿
 
@@ -3187,3 +3313,254 @@ private:
 <div align="right"><a style="text-decoration:none" href="#page-replace-algo">↩️</a></div>
 <div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
 
+## semaphore、生成者消费者
+
+*`semaphore.h`*
+
+```cpp
+#include <mutex>
+#include <condition_variable>
+class Semaphore {
+public:
+    explicit Semaphore(unsigned int init = 0) : _count(init) {}
+    ~Semaphore() {}
+    
+    void post(unsigned int n = 1) {
+        std::unique_lock<std::mutex> lock(_mutex);
+        _count += n;
+        _condition.notify_all();
+    }
+    
+    void wait() {
+        std::unique_lock(std::mutex) lock(_mutex);
+        while (_count == 0) {
+            _condition.wait(lock);
+        }
+        --_count;
+    }
+private:
+    int _count;
+    std::mutex _mutex;
+    std::condition_variable_any _condition;
+};
+```
+
+
+
+```cpp
+#include <thread>
+#include "semaphore.h"
+
+#define NUM 5
+int queue[NUM];
+Semaphore blank_number(NUM), product_number;
+
+void Producer() {
+    int i = 0;
+    while (1) {
+        blank_number.wait();
+        queue[i] = rand() % 1000 + 1;
+        std::cout << "P-" << queue[i] << std::endl;
+        product_number.post();
+        i = (i + 1) % NUM;
+        sleep(rand() % 2);
+    }
+}
+
+void Consumer() {
+    int i = 0;
+    while (1) {
+        product_number.wait();
+        std::cout << "C-" << queue[i] << std::endl;
+        queue[i] = 0;
+        blank_number.post();
+        i = (i + 1) % NUM;
+        sleep(rand() % 3);
+    }
+}
+
+int main() {
+    std::thread p(Producer);
+    std::thread c(Consumer);
+    p.join();
+    c.join();
+}
+```
+
+
+
+<a id="bloom-filter"></a>
+
+## 布隆过滤器
+
+> [布隆过滤器 - 如何在100个亿URL中快速判断某URL是否存在？](https://www.cnblogs.com/kyoner/p/11109536.html)
+
+<div align="right"><a style="text-decoration:none" href="#6-5-3">↩️</a><a style="text-decoration:none" href="#content">⏫</a></div>
+
+### bitmap
+
+*`bitmap.h`*
+
+```cpp
+#pragma once
+#include <vector>
+#include <exception>
+#include <ostream>
+
+class BitMap {
+public:
+    BitMap() : _size(0) {}
+    BitMap(size_t size) : _size(0) {
+        _array.resize((size >> 5) + 1);
+    }
+    size_t size() const { return _size; }
+    
+    bool set(size_t num) {
+        size_t index = num >> 5; // num / 32.
+        size_t n = num % 32;
+        try {
+            // this num had set already.
+            if (_array.at(index) & (1 << (31 - n))) {
+                return false;
+            }
+            else {
+                size_t a = 1 << (31 - n);
+                _array[index] |= a;
+                ++_size;
+                return true;
+            }
+        }
+        catch (std::out_of_range) {
+            std::cout << num << " out of range." << std::endl;
+            return false;
+        }
+    }
+    bool erase(size_t num) {
+        size_t index = num >> 5;
+        size_t n = num % 32;
+        try {
+            if (_array.at(index) & (1 << (31 - n))) {
+                _array[index] &= (~(1 << (31 - n)));
+                --_size;
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        catch (std::out_of_range) {
+            std::cout << num << " out of range." << std::endl;
+            return false;
+        }
+    }
+    bool find(size_t num) {
+        size_t index = num >> 5;
+        size_t n = num % 32;
+        try {
+            if (_array.at(index) & (1 << (31 - n)))
+                return true;
+            else
+                return false;
+        }
+        catch (std::out_of_range) {
+            std::cout << num << " out of range." << std::endl;
+            return false;
+        }
+    }
+private:
+    size_t _size;
+    std::vector<size_t> _array;
+};
+```
+
+<div align="right"><a style="text-decoration:none" href="#bloom-filter">↩️</a></div>
+
+### BloomFilter
+
+*`hashFunc.h`*
+
+```cpp
+#pragma once
+
+template<class T, int PRIME>
+size_t HashPrime(const char *str) {
+    register size_t hash = 0;
+    while (size_t ch = (size_t)*str++) {
+        hash = hash * PRIME + ch;
+    }
+    return hash;
+}
+
+template<class T>
+size_t HashShift(const char * str) {
+    register size_t hash = 0;
+    size_t ch;
+    for (long i = 0; ch = (size_t)*str++; ++i) {
+        if ((i & 1) == 0) {
+            hash ^= ((hash << 7) ^ ch ^ (hash >> 3));
+        }
+        else {
+            hash ^= (~((hash << 11) ^ ch ^ (hash >> 5)));
+        }
+    }
+    return hash;
+}
+```
+
+*`bloomFilter.h`*
+
+这里用 *`vector<bool>`*，没有用上面的 `bitmap.h`，另外，需要注意 *`bitset`* 和 *`vector<bool>`* 的区别
+
+```cpp
+#pragma once
+#include <string>
+//#include <bitset>
+#include <vector>
+
+#include "hashFunc.h"
+
+template<class T, int PRIME>
+struct __HashFuncPrime {
+    size_t operator() (const T& key) {
+        return HashPrime<T, PRIME>(key.c_str());
+    }
+};
+
+template<class T>
+struct __HashFuncShift {
+    size_t operator() (const T& key) {
+        return HashShift<T>(key.c_str());
+    }
+};
+
+template<class K = std::string,
+class HashFunc1 = __HashFuncPrime<K, 131>,
+class HashFunc2 = __HashFuncPrime<K, 57>,
+class HashFunc3 = __HashFuncShift<K>>
+class BloomFilter {
+public:
+    BloomFilter(size_t size) : _capacity(size), _bitmap(size * 3) {
+
+    }
+    void set(const K& key) {
+        _bitmap[HashFunc1()(key) % _bitmap.size()] = 1;
+        _bitmap[HashFunc2()(key) % _bitmap.size()] = 1;
+        _bitmap[HashFunc3()(key) % _bitmap.size()] = 1;
+    }
+    bool find(const K& key) {
+        if (_bitmap[HashFunc1()(key) % _bitmap.size()] == 0)
+            return false;
+        if (_bitmap[HashFunc2()(key) % _bitmap.size()] == 0)
+            return false;
+        if (_bitmap[HashFunc3()(key) % _bitmap.size()] == 0)
+            return false;
+        return true;
+    }
+private:
+    std::vector<bool> _bitmap;
+    size_t _capacity;
+};
+```
+
+<div align="right"><a style="text-decoration:none" href="#bloom-filter">↩️</a></div>
+<div align="right"><a style="text-decoration:none" href="#content">⏫</a></div>
